@@ -1,20 +1,17 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { settingsStore, OPENAI_MODELS, type AppSettings } from '$lib/stores.js';
 	import { cn } from '$lib/utils.js';
+	import { UI_TEXT, LABELS, PLACEHOLDERS, MESSAGES } from '$lib/constants.js';
 
 	interface Props {
 		open: boolean;
+		onclose?: () => void;
 	}
 
-	let { open }: Props = $props();
+	let { open, onclose }: Props = $props();
 
-	const dispatch = createEventDispatcher<{
-		close: void;
-	}>();
-
-	let settings = $state<AppSettings>({ apiKey: '', model: 'gpt-4o-mini' });
-	let tempSettings = $state<AppSettings>({ apiKey: '', model: 'gpt-4o-mini' });
+	let settings = $state<AppSettings>({ apiKey: '', model: 'gpt-4o-1' });
+	let tempSettings = $state<AppSettings>({ apiKey: '', model: 'gpt-4o-1' });
 
 	settingsStore.subscribe(value => {
 		settings = value;
@@ -23,12 +20,12 @@
 
 	function handleSave() {
 		settingsStore.set(tempSettings);
-		dispatch('close');
+		onclose?.();
 	}
 
 	function handleCancel() {
 		tempSettings = { ...settings };
-		dispatch('close');
+		onclose?.();
 	}
 
 	function handleOverlayClick(event: MouseEvent) {
@@ -49,7 +46,7 @@
 	>
 		<div class="w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg max-h-[90vh] overflow-y-auto">
 			<div class="mb-4 flex items-center justify-between">
-				<h2 class="text-lg font-semibold">Settings</h2>
+				<h2 class="text-lg font-semibold">{UI_TEXT.SETTINGS}</h2>
 				<button
 					type="button"
 					onclick={handleCancel}
@@ -62,13 +59,13 @@
 			<div class="space-y-4">
 				<div>
 					<label for="api-key" class="block text-sm font-medium">
-						OpenAI API Key
+						{LABELS.OPENAI_API_KEY}
 					</label>
 					<input
 						id="api-key"
-						type="password"
+						type="text"
 						bind:value={tempSettings.apiKey}
-						placeholder="sk-..."
+						placeholder={PLACEHOLDERS.API_KEY}
 						class={cn(
 							'mt-1 block w-full rounded-md border bg-background px-3 py-2 text-sm',
 							'placeholder:text-muted-foreground',
@@ -76,13 +73,13 @@
 						)}
 					/>
 					<p class="mt-1 text-xs text-muted-foreground">
-						Your API key is stored locally and never sent to our servers.
+						{MESSAGES.API_KEY_SECURITY}
 					</p>
 				</div>
 
 				<div>
 					<label for="model" class="block text-sm font-medium">
-						Model
+						{LABELS.MODEL}
 					</label>
 					<select
 						id="model"
@@ -93,14 +90,14 @@
 						)}
 					>
 						{#each OPENAI_MODELS as model}
-							<option value={model}>{model}</option>
+							<option value={model.id}>{model.name} - {model.description}</option>
 						{/each}
 					</select>
 				</div>
 
 				<div>
 					<label for="max-tokens" class="block text-sm font-medium">
-						Max Tokens
+						{LABELS.MAX_TOKENS}
 					</label>
 					<input
 						id="max-tokens"
@@ -117,7 +114,7 @@
 
 				<div>
 					<label for="temperature" class="block text-sm font-medium">
-						Temperature ({tempSettings.temperature})
+						{LABELS.TEMPERATURE} ({tempSettings.temperature})
 					</label>
 					<input
 						id="temperature"
@@ -129,19 +126,19 @@
 						class="mt-1 block w-full"
 					/>
 					<div class="mt-1 flex justify-between text-xs text-muted-foreground">
-						<span>More focused</span>
-						<span>More creative</span>
+						<span>{MESSAGES.TEMPERATURE_LOW}</span>
+						<span>{MESSAGES.TEMPERATURE_HIGH}</span>
 					</div>
 				</div>
 
 				<div>
 					<label for="system-prompt" class="block text-sm font-medium">
-						System Prompt
+						{LABELS.SYSTEM_PROMPT}
 					</label>
 					<textarea
 						id="system-prompt"
 						bind:value={tempSettings.systemPrompt}
-						placeholder="You are a helpful assistant..."
+						placeholder={PLACEHOLDERS.SYSTEM_PROMPT}
 						rows="3"
 						class={cn(
 							'mt-1 block w-full resize-none rounded-md border bg-background px-3 py-2 text-sm',
@@ -150,13 +147,13 @@
 						)}
 					></textarea>
 					<p class="mt-1 text-xs text-muted-foreground">
-						Instructions that guide the AI's behavior and personality.
+						{MESSAGES.SYSTEM_PROMPT_HELP}
 					</p>
 				</div>
 
 				<div>
 					<label for="top-p" class="block text-sm font-medium">
-						Top P ({tempSettings.topP})
+						{LABELS.TOP_P} ({tempSettings.topP})
 					</label>
 					<input
 						id="top-p"
@@ -168,14 +165,14 @@
 						class="mt-1 block w-full"
 					/>
 					<div class="mt-1 flex justify-between text-xs text-muted-foreground">
-						<span>Less diverse</span>
-						<span>More diverse</span>
+						<span>{MESSAGES.TOP_P_LOW}</span>
+						<span>{MESSAGES.TOP_P_HIGH}</span>
 					</div>
 				</div>
 
 				<div>
 					<label for="presence-penalty" class="block text-sm font-medium">
-						Presence Penalty ({tempSettings.presencePenalty})
+						{LABELS.PRESENCE_PENALTY} ({tempSettings.presencePenalty})
 					</label>
 					<input
 						id="presence-penalty"
@@ -187,14 +184,14 @@
 						class="mt-1 block w-full"
 					/>
 					<div class="mt-1 flex justify-between text-xs text-muted-foreground">
-						<span>Repeat topics</span>
-						<span>Avoid topics</span>
+						<span>{MESSAGES.PRESENCE_PENALTY_LOW}</span>
+						<span>{MESSAGES.PRESENCE_PENALTY_HIGH}</span>
 					</div>
 				</div>
 
 				<div>
 					<label for="frequency-penalty" class="block text-sm font-medium">
-						Frequency Penalty ({tempSettings.frequencyPenalty})
+						{LABELS.FREQUENCY_PENALTY} ({tempSettings.frequencyPenalty})
 					</label>
 					<input
 						id="frequency-penalty"
@@ -206,8 +203,8 @@
 						class="mt-1 block w-full"
 					/>
 					<div class="mt-1 flex justify-between text-xs text-muted-foreground">
-						<span>Repeat words</span>
-						<span>Avoid repetition</span>
+						<span>{MESSAGES.FREQUENCY_PENALTY_LOW}</span>
+						<span>{MESSAGES.FREQUENCY_PENALTY_HIGH}</span>
 					</div>
 				</div>
 			</div>
@@ -221,7 +218,7 @@
 						'hover:bg-accent hover:text-accent-foreground'
 					)}
 				>
-					Cancel
+					{UI_TEXT.CANCEL}
 				</button>
 				<button
 					type="button"
@@ -231,7 +228,7 @@
 						'hover:bg-primary/90'
 					)}
 				>
-					Save
+					{UI_TEXT.SAVE}
 				</button>
 			</div>
 		</div>

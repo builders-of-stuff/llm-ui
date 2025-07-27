@@ -1,8 +1,9 @@
 import { browser } from '$app/environment';
+import { MESSAGE_ROLES, UI_TEXT, type MessageRole } from './constants.js';
 
 export interface ChatMessage {
 	id: string;
-	role: 'user' | 'assistant';
+	role: MessageRole;
 	content: string;
 	timestamp: number;
 	attachments?: File[];
@@ -33,13 +34,24 @@ const STORAGE_KEYS = {
 	CURRENT_SESSION: 'llm-ui-current-session'
 } as const;
 
-export const OPENAI_MODELS = [
-	'gpt-4o',
-	'gpt-4o-mini',
-	'gpt-4-turbo',
-	'gpt-4',
-	'gpt-3.5-turbo'
-] as const;
+export interface ModelOption {
+	id: string;
+	name: string;
+	description: string;
+}
+
+export const OPENAI_MODELS: ModelOption[] = [
+	{
+		id: 'gpt-4.1',
+		name: 'GPT-4.1',
+		description: 'Latest flagship model with enhanced reasoning capabilities'
+	},
+	{
+		id: 'o4-mini',
+		name: 'o4-mini',
+		description: 'Faster, more affordable reasoning model'
+	}
+];
 
 class LocalStorageStore<T> {
 	private key: string;
@@ -79,7 +91,7 @@ class LocalStorageStore<T> {
 	set(value: T): void {
 		this._value = value;
 		this.save(value);
-		this.listeners.forEach(listener => listener(value));
+		this.listeners.forEach((listener) => listener(value));
 	}
 
 	update(updater: (value: T) => T): void {
@@ -96,7 +108,7 @@ class LocalStorageStore<T> {
 export const sessionsStore = new LocalStorageStore<ChatSession[]>(STORAGE_KEYS.SESSIONS, []);
 export const settingsStore = new LocalStorageStore<AppSettings>(STORAGE_KEYS.SETTINGS, {
 	apiKey: '',
-	model: 'gpt-4o-mini',
+	model: 'gpt-4.1',
 	maxTokens: 2048,
 	temperature: 0.7,
 	systemPrompt: '',
@@ -104,53 +116,60 @@ export const settingsStore = new LocalStorageStore<AppSettings>(STORAGE_KEYS.SET
 	presencePenalty: 0,
 	frequencyPenalty: 0
 });
-export const currentSessionIdStore = new LocalStorageStore<string | null>(STORAGE_KEYS.CURRENT_SESSION, null);
+export const currentSessionIdStore = new LocalStorageStore<string | null>(
+	STORAGE_KEYS.CURRENT_SESSION,
+	null
+);
 
 export function createNewSession(): ChatSession {
 	const session: ChatSession = {
 		id: crypto.randomUUID(),
-		title: 'New Chat',
+		title: UI_TEXT.NEW_CHAT,
 		messages: [],
 		createdAt: Date.now(),
 		updatedAt: Date.now()
 	};
-	
-	sessionsStore.update(sessions => [session, ...sessions]);
+
+	sessionsStore.update((sessions) => [session, ...sessions]);
 	currentSessionIdStore.set(session.id);
-	
+
 	return session;
 }
 
 export function getCurrentSession(): ChatSession | null {
 	const currentId = currentSessionIdStore.value;
 	if (!currentId) return null;
-	
-	return sessionsStore.value.find(s => s.id === currentId) || null;
+
+	return sessionsStore.value.find((s) => s.id === currentId) || null;
 }
 
-export function updateSession(sessionId: string, updater: (session: ChatSession) => ChatSession): void {
-	sessionsStore.update(sessions => 
-		sessions.map(s => s.id === sessionId ? updater(s) : s)
-	);
+export function updateSession(
+	sessionId: string,
+	updater: (session: ChatSession) => ChatSession
+): void {
+	sessionsStore.update((sessions) => sessions.map((s) => (s.id === sessionId ? updater(s) : s)));
 }
 
 export function deleteSession(sessionId: string): void {
-	sessionsStore.update(sessions => sessions.filter(s => s.id !== sessionId));
-	
+	sessionsStore.update((sessions) => sessions.filter((s) => s.id !== sessionId));
+
 	if (currentSessionIdStore.value === sessionId) {
 		const remaining = sessionsStore.value;
 		currentSessionIdStore.set(remaining.length > 0 ? remaining[0].id : null);
 	}
 }
 
-export function addMessage(sessionId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>): void {
+export function addMessage(
+	sessionId: string,
+	message: Omit<ChatMessage, 'id' | 'timestamp'>
+): ChatMessage {
 	const newMessage: ChatMessage = {
 		...message,
 		id: crypto.randomUUID(),
 		timestamp: Date.now()
 	};
 
-	updateSession(sessionId, session => {
+	updateSession(sessionId, (session) => {
 		const updatedSession = {
 			...session,
 			messages: [...session.messages, newMessage],
@@ -158,10 +177,21 @@ export function addMessage(sessionId: string, message: Omit<ChatMessage, 'id' | 
 		};
 
 		// Auto-generate title from first user message
-		if (session.messages.length === 0 && message.role === 'user') {
-			updatedSession.title = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '');
+		if (session.messages.length === 0 && message.role === MESSAGE_ROLES.USER) {
+			updatedSession.title =
+				message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '');
 		}
 
 		return updatedSession;
 	});
+
+	return newMessage;
+}
+
+export function updateMessageContent(sessionId: string, messageId: string, content: string): void {
+	updateSession(sessionId, (session) => ({
+		...session,
+		messages: session.messages.map((msg) => (msg.id === messageId ? { ...msg, content } : msg)),
+		updatedAt: Date.now()
+	}));
 }

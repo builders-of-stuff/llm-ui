@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { sessionsStore, currentSessionIdStore, createNewSession, deleteSession, type ChatSession } from '$lib/stores.js';
 	import { cn } from '$lib/utils.js';
+	import { UI_TEXT } from '$lib/constants.js';
 
-	const dispatch = createEventDispatcher<{
-		'settings-open': void;
-	}>();
+	interface Props {
+		onsettingsopen?: () => void;
+	}
+
+	let { onsettingsopen }: Props = $props();
 
 	let sessions = $state<ChatSession[]>([]);
 	let currentSessionId = $state<string | null>(null);
@@ -55,7 +57,7 @@
 			)}
 		>
 			<span class="text-base">+</span>
-			New Chat
+			{UI_TEXT.NEW_CHAT}
 		</button>
 	</div>
 
@@ -105,14 +107,14 @@
 	<div class="border-t p-4">
 		<button
 			type="button"
-			onclick={() => dispatch('settings-open')}
+			onclick={() => onsettingsopen?.()}
 			class={cn(
 				'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm',
 				'hover:bg-accent hover:text-accent-foreground'
 			)}
 		>
 			<span class="text-base">⚙️</span>
-			Settings
+			{UI_TEXT.SETTINGS}
 		</button>
 	</div>
 </div>

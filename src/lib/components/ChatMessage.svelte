@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ChatMessage } from '$lib/stores.js';
 	import { cn } from '$lib/utils.js';
+	import { MESSAGE_ROLES, UI_TEXT, AVATARS } from '$lib/constants.js';
 
 	interface Props {
 		message: ChatMessage;
@@ -23,24 +24,24 @@
 <div
 	class={cn(
 		'group flex w-full gap-3 p-4 text-sm',
-		message.role === 'user' ? 'bg-muted/50' : 'bg-background'
+		message.role === MESSAGE_ROLES.USER ? 'bg-muted/50' : 'bg-background'
 	)}
 >
 	<div
 		class={cn(
 			'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full text-xs font-medium',
-			message.role === 'user' 
+			message.role === MESSAGE_ROLES.USER 
 				? 'bg-primary text-primary-foreground' 
 				: 'bg-secondary text-secondary-foreground'
 		)}
 	>
-		{message.role === 'user' ? 'U' : 'AI'}
+		{message.role === MESSAGE_ROLES.USER ? AVATARS.USER_INITIAL : AVATARS.AI_INITIAL}
 	</div>
 	
 	<div class="flex-1 space-y-2 overflow-hidden">
 		<div class="flex items-center gap-2">
 			<span class="font-medium capitalize">
-				{message.role === 'user' ? 'You' : 'Assistant'}
+				{message.role === MESSAGE_ROLES.USER ? UI_TEXT.YOU : UI_TEXT.ASSISTANT}
 			</span>
 			<span class="text-xs text-muted-foreground">
 				{formatTime(message.timestamp)}

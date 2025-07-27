@@ -17,6 +17,7 @@
 	let content = $state('');
 	let attachments = $state<File[]>([]);
 	let fileInput: HTMLInputElement;
+	let isDragOver = $state(false);
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter' && !event.shiftKey) {
@@ -54,9 +55,52 @@
 	function removeAttachment(index: number) {
 		attachments = attachments.filter((_, i) => i !== index);
 	}
+
+	function handleDragOver(event: DragEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		isDragOver = true;
+	}
+
+	function handleDragLeave(event: DragEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		isDragOver = false;
+	}
+
+	function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		isDragOver = false;
+
+		const files = event.dataTransfer?.files;
+		if (files) {
+			const newFiles = Array.from(files).filter(file => {
+				// Filter for supported file types
+				const supportedTypes = ['image/', 'text/', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+				return supportedTypes.some(type => file.type.startsWith(type)) || 
+					   ['.pdf', '.doc', '.docx', '.txt', '.md'].some(ext => file.name.toLowerCase().endsWith(ext));
+			});
+			attachments = [...attachments, ...newFiles];
+		}
+	}
 </script>
 
-<div class="border-t bg-background p-4">
+<div 
+	class={cn(
+		"border-t bg-background p-4 transition-colors",
+		isDragOver && "bg-accent/50 border-accent"
+	)}
+	ondragover={handleDragOver}
+	ondragleave={handleDragLeave}
+	ondrop={handleDrop}
+>
+	{#if isDragOver}
+		<div class="mb-3 rounded-lg border-2 border-dashed border-accent bg-accent/10 p-4 text-center text-sm text-muted-foreground">
+			Drop files here to attach them
+		</div>
+	{/if}
+
 	{#if attachments.length > 0}
 		<div class="mb-3 flex flex-wrap gap-2">
 			{#each attachments as file, index}
@@ -93,7 +137,7 @@
 			></textarea>
 		</div>
 
-		<div class="flex flex-col gap-1">
+		<div class="flex gap-1">
 			<input
 				bind:this={fileInput}
 				type="file"
